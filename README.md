@@ -52,7 +52,7 @@ A production-ready Todo API with FastAPI, Uvicorn, SQLAlchemy ORM, Alembic migra
 ```
 
 ## 🌎 API
-<img src="./images/api.png" alt="api" width="600"/> -->
+<img src="./images/api.png" alt="api" width="600"/>
 
 ## ▶️ Running
 
