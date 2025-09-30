@@ -130,5 +130,28 @@ To properly configure the application, you'll need to define the following envir
   python main.py
 ```
 
+## 🔃 Testing
+
+### **💡 Installation**
+```bash
+  pip install pytest-cov
+
+  pytest --cov=app --cov-report=term-missing --cov-report=html --cov-report=xml
+```
+
+### **🔨 Setup `pytest.ini`**
+Create pytest.ini in the root project with content:
+
+```ini
+  [pytest]
+  addopts = -q --cov=app --cov-branch --cov-report=term-missing
+
+  cov_exclude = 
+      tests/*
+      alembic/*
+      venv/*
+      .venv/*
+```
+
 ## 📃 References
-- [Structuring a FastAPI Project: Best Practices](https://dev.to/mohammad222pr/structuring-a-fastapi-project-best-practices-53l6?utm_source=chatgpt.com)
+- [Structuring a FastAPI Project: Best Practices](https://dev.to/mohammad222pr/structuring-a-fastapi-project-best-practices-53l6)

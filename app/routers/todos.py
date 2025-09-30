@@ -2,13 +2,14 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
+from app.core.url import todo
 from app.core.database import get_db_context
 from app.models.task import Task
 from app.models.user import User
 from app.schemas.task import TaskCreate, TaskUpdate, TaskOut
 from app.services.auth import get_current_user
 
-router = APIRouter(prefix="/todos", tags=["Todos"])
+router = APIRouter(prefix=todo["prefix"], tags=todo["tags"])
 
 def _ensure_access(task: Task, current_user: User):
     if task.company_id != current_user.company_id:
@@ -16,7 +17,8 @@ def _ensure_access(task: Task, current_user: User):
     if not current_user.is_admin and task.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not allowed")
 
-@router.get("", response_model=list[TaskOut])
+# Get task list
+@router.get(todo["urls"]["list_tasks"], response_model=list[TaskOut])
 def list_tasks(
     status_filter: str | None = Query(default=None, alias="status"),
     db: Session = Depends(get_db_context),
@@ -27,9 +29,10 @@ def list_tasks(
         q = q.filter(Task.user_id == current_user.id)
     if status_filter:
         q = q.filter(Task.status == status_filter)
-    return q.order_by(Task.priority.desc()).all()
+    return q.all()
 
-@router.get("/{task_id}", response_model=TaskOut)
+# Get task detail
+@router.get(todo["urls"]["get_task_by_id"], response_model=TaskOut)
 def get_task(
     task_id: UUID,
     db: Session = Depends(get_db_context),
@@ -41,7 +44,8 @@ def get_task(
     _ensure_access(task, current_user)
     return task
 
-@router.post("", response_model=TaskOut, status_code=status.HTTP_201_CREATED)
+# Create task
+@router.post(todo["urls"]["create_task"], response_model=TaskOut, status_code=status.HTTP_201_CREATED)
 def create_task(
     payload: TaskCreate,
     db: Session = Depends(get_db_context),
@@ -57,7 +61,8 @@ def create_task(
     db.refresh(task)
     return task
 
-@router.put("/{task_id}", response_model=TaskOut)
+# Update task
+@router.put(todo["urls"]["update_task"], response_model=TaskOut)
 def update_task(
     task_id: UUID,
     payload: TaskUpdate,
@@ -75,7 +80,8 @@ def update_task(
     db.refresh(task)
     return task
 
-@router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
+# Delete task
+@router.delete(todo["urls"]["delete_task"], status_code=status.HTTP_204_NO_CONTENT)
 def delete_task(
     task_id: UUID,
     db: Session = Depends(get_db_context),

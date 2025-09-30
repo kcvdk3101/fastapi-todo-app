@@ -2,21 +2,24 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.url import user
 from app.core.database import get_db_context
 from app.core.security import get_password_hash
 from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate, UserOut
 from app.services.auth import get_current_user
 
-router = APIRouter(prefix="/users", tags=["Users"])
+router = APIRouter(prefix=user["prefix"], tags=user["tags"])
 
-@router.get("/me", response_model=UserOut)
+# Get user profile
+@router.get(user["urls"]["get_me"], response_model=UserOut)
 def get_me(
     current_user: User = Depends(get_current_user),
 ):
     return current_user
 
-@router.get("", response_model=list[UserOut])
+# Get user list
+@router.get(user["urls"]["list_users"], response_model=list[UserOut])
 def list_users_in_company(
     db: Session = Depends(get_db_context),
     current_user: User = Depends(get_current_user),
@@ -29,7 +32,8 @@ def list_users_in_company(
         .all()
     )
 
-@router.get("/{user_id}", response_model=UserOut)
+# Get user profile by id
+@router.get(user["urls"]["get_user_by_id"], response_model=UserOut)
 def get_user(
     user_id: UUID,
     db: Session = Depends(get_db_context),
@@ -38,10 +42,10 @@ def get_user(
     user = db.get(User, user_id)
     if not user or user.company_id != current_user.company_id:
         raise HTTPException(status_code=404, detail="User not found")
-    # user thường chỉ xem người cùng công ty (có thể siết chặt: chỉ xem bản thân)
     return user
 
-@router.post("", response_model=UserOut, status_code=status.HTTP_201_CREATED)
+# Create user (admin only)
+@router.post(user["urls"]["create_user"], response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def create_user_in_company(
     payload: UserCreate,
     db: Session = Depends(get_db_context),
@@ -59,14 +63,15 @@ def create_user_in_company(
         hashed_password=hashed,
         is_active=payload.is_active,
         is_admin=payload.is_admin,
-        company_id=current_user.company_id,  # luôn gán vào công ty của admin
+        company_id=current_user.company_id,
     )
     db.add(user)
     db.commit()
     db.refresh(user)
     return user
 
-@router.patch("/{user_id}", response_model=UserOut)
+# Update user profile by id
+@router.put(user["urls"]["update_user"], response_model=UserOut)
 def update_user(
     user_id: UUID,
     payload: UserUpdate,
@@ -77,18 +82,18 @@ def update_user(
     if not user or user.company_id != current_user.company_id:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # quyền: user thường chỉ sửa chính mình + không được set is_admin/is_active cho người khác
+    # User only update basic information, except is_admin/is_active
     if not current_user.is_admin and user.id != current_user.id:
         raise HTTPException(status_code=403, detail="Not allowed")
 
     data = payload.model_dump(exclude_unset=True)
 
-    # chặn leo quyền
+    # Prevent unauthorized access
     if not current_user.is_admin:
         data.pop("is_admin", None)
         data.pop("is_active", None)
 
-    # đổi mật khẩu nếu có
+    # Change pasword
     if "password" in data and data["password"]:
         user.hashed_password = get_password_hash(data.pop("password"))
 
@@ -99,7 +104,8 @@ def update_user(
     db.refresh(user)
     return user
 
-@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+# Delete user (admin only)
+@router.delete(user["urls"]["delete_user"], status_code=status.HTTP_204_NO_CONTENT)
 def delete_user(
     user_id: UUID,
     db: Session = Depends(get_db_context),

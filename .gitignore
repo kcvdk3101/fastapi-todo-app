@@ -1,7 +1,40 @@
-
-__pycache__/
-*.py[cod]
-*$py.class
-.env
-env/
+# Virtual environments
 venv/
+env/
+.venv/
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyd
+*.pyo
+
+# Editor/IDE files
+.vscode/
+.idea/
+.spyderproject
+.spyproject
+
+# Logs and temporary files
+*.log
+pip-log.txt
+
+# Database files
+db.sqlite3
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+
+# Testing artifacts
+.pytest_cache/
+.tox/
+
+# Documentation build outputs
+docs/_build/
+/site
+
+# Environment variables
+.env
+.flaskenv
