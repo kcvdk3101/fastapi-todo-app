@@ -20,15 +20,12 @@ def _ensure_access(task: Task, current_user: User):
 # Get task list
 @router.get(todo["urls"]["list_tasks"], response_model=list[TaskOut])
 def list_tasks(
-    status_filter: str | None = Query(default=None, alias="status"),
     db: Session = Depends(get_db_context),
     current_user: User = Depends(get_current_user),
 ):
     q = db.query(Task).filter(Task.company_id == current_user.company_id)
     if not current_user.is_admin:
         q = q.filter(Task.user_id == current_user.id)
-    if status_filter:
-        q = q.filter(Task.status == status_filter)
     return q.all()
 
 # Get task detail

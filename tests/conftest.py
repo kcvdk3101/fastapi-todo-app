@@ -4,6 +4,8 @@ import pytest
 
 client = TestClient(app)
 
+AUTH_URL = "/auth/login"
+
 @pytest.fixture
 def test_client():
   with TestClient(app) as client:
@@ -19,14 +21,24 @@ def test_db():
     db.close()
     Base.metadata.drop_all(bind=engine)
 
-# Fixture for creating a test company
+# Token admin / non-admin
 @pytest.fixture
-def test_company(test_db):
-    from app.models.company import Company
-    company = Company(name="TestCompany", description="TestDescription")
-    test_db.add(company)
-    test_db.commit()
-    test_db.refresh(company)
-    yield company
-    test_db.delete(company)
-    test_db.commit()
+def admin_token(test_client):
+    resp = test_client.post(AUTH_URL, data={"username": "admin", "password": "admin@123"})
+    assert resp.status_code == 200, resp.text
+    return resp.json()["access_token"]
+
+@pytest.fixture
+def non_admin_token(test_client):
+    resp = test_client.post(AUTH_URL, data={"username": "khoi.vuongdinh", "password": "Kh@ivuong3101"})
+    assert resp.status_code == 200, resp.text
+    return resp.json()["access_token"]
+
+# Header
+@pytest.fixture
+def admin_headers(admin_token):
+    return {"Authorization": f"Bearer {admin_token}"}
+
+@pytest.fixture
+def non_admin_headers(non_admin_token):
+    return {"Authorization": f"Bearer {non_admin_token}"}

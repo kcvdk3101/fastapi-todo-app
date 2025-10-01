@@ -152,6 +152,13 @@ Create pytest.ini in the root project with content:
       venv/*
       .venv/*
 ```
+Then run
+```bash
+  coverage run -m pytest
+  coverage html
+  coverage xml
+  coverage report
+```
 
 ## 📃 References
 - [Structuring a FastAPI Project: Best Practices](https://dev.to/mohammad222pr/structuring-a-fastapi-project-best-practices-53l6)
