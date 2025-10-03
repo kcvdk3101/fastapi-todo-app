@@ -1,0 +1,76 @@
+---
+alwaysApply: false
+description: Rules and conventions for database models and SQLAlchemy patterns
+globs: app/models/*.py
+---
+
+# FastAPI Todo App - Database Models & SQLAlchemy Rules
+
+## Core Models Structure
+
+### Base Model (`app/models/base.py`)
+- All models inherit from `DeclarativeBase` in [app/models/base.py](mdc:app/models/base.py)
+- Use `IdTimestampMixin` for consistent `id`, `created_at`, and `updated_at` fields
+- Models are mapped using modern SQLAlchemy 2.0+ declarative mapping syntax
+
+### Model Files Organization
+- `app/models/user.py`: User model with company relationship
+- `app/models/company.py`: Company model (parent to users)
+- `app/models/task.py`: Task model linked to users and companies
+- `app/models/__init__.py`: Exports all models
+
+## Model Conventions
+
+### Primary Keys & IDs
+- Use UUID for primary keys (`uuid.UUID` type)
+- Always include `IdTimestampMixin` for standardized ID and timestamp fields
+- Foreign key IDs should reference UUID columns
+
+### Relationships
+- Define relationships using `sqlalchemy.orm.relationship`
+- Use `back_populates` for bidirectional links (e.g., User.tasks ↔ Task.owner)
+- Specify `cascade` rules for parent-child relationships (e.g., `"all, delete-orphan"`)
+- Foreign key constraints: Use `ForeignKey` with explicit `ondelete` behavior (`CASCADE`, `RESTRICT`)
+
+### Column Definitions
+- Use explicit type annotations (`String`, `Boolean`, `ForeignKey`, `UUID`)
+- Set appropriate constraints (`nullable`, `unique`, `index`)
+- Define default values where suitable
+
+## Import Requirements
+- Use `from __future__ import annotations` for type hint compatibility
+- Import UUID type from `sqlalchemy.dialects.postgresql` (UUID)
+- Import relationships from `sqlalchemy.orm.relationship`
+
+```python
+from __future__ import annotations
+from sqlalchemy import Column, String, Boolean, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
+from app.models.base import IdTimestampMixin, Base
+```
+
+## Schema Design Patterns
+
+### User Model Patterns
+- Must have `email`, `username`, `hashed_password`
+- Include optional profile fields (`first_name`, `last_name`)
+- Boolean flags: `is_active`, `is_admin`
+- Company relationship: `company_id` foreign key required
+
+### Company Model Patterns
+- Required `name`, optional `description`
+- One-to-many relationship with users
+- Cascade delete on users when company is deleted
+
+### Task Model Patterns
+- Required `title`, `content`, `is_completed` status
+- Owner relationship: `user_id` foreign key
+- Company relationship: `company_id` foreign key
+- Cascade delete when owner is deleted
+
+## Migration Considerations
+- Use Alembic for all schema changes
+- Test migrations on development data first
+- Consider foreign key constraint impacts
+- Maintain data integrity during schema updates

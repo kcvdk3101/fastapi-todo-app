@@ -1,0 +1,155 @@
+---
+alwaysApply: false
+description: Rules for Pydantic models, data validation, and schema patterns
+globs: app/schemas/*.py
+---
+
+# FastAPI Todo App - Pydantic Schemas & Validation Rules
+
+## Schema Organization
+
+### Schema Files Structure
+- `app/schemas/user.py`: User-related schemas and validation
+- `app/schemas/company.py`: Company entity schemas  
+- `app/schemas/task.py`: Task/todo schemas and validation
+- Each file exports domain-specific Pydantic models
+
+## Schema Conventions
+
+### Base Schema Patterns
+```python
+from uuid import UUID
+from pydantic import BaseModel, Field
+```
+
+### Schema Types & Inheritance
+- **Base Model**: Domain entity representation (e.g., `Company`, `User`, `Task`)
+- **Create Schema**: Inherits from base, adds required fields for creation (e.g., `CompanyCreate`)
+- **Update Schema**: Partial update model with optional fields (e.g., `CompanyUpdate`)
+- **Response/Output Schema**: Complete response model with all fields (e.g., `UserOut`)
+
+## Field Validation Rules
+
+### String Field Patterns
+```python
+name: str = Field(min_length=1, max_length=255)
+username: str = Field(min_length=3, max_length=50)
+content: str = Field(min_length=1)
+```
+
+### Optional Field Handling
+```python
+first_name: str | None = Field(default=None, max_length=50)
+description: str | None = Field(default=None, max_length=1024)
+```
+
+### Boolean Fields
+```python
+is_active: bool = True  # Default value
+is_completed: bool = Field(default=False)
+```
+
+## Schema Model Examples
+
+### User Schema Patterns (`app/schemas/user.py`)
+```python
+class User(BaseModel):
+    email: str = Field(min_length=1)
+    username: str = Field(min_length=3, max_length=50)
+    first_name: str | None = Field(default=None, max_length=50)
+    last_name: str | None = Field(default=None, max_length=50)
+    is_active: bool = True
+    is_admin: bool = False
+
+class UserCreate(User):
+    password: str = Field(min_length=6, max_length=128)
+
+class UserUpdate(BaseModel):
+    email: str | None = None
+    username: str | None = Field(default=None, min_length=3, max_length=50)
+    first_name: str | None = Field(default=None, max_length=50)
+    last_name: str | None = Field(default=None, max_length=50)
+    is_active: bool | None = None
+    is_admin: bool | None = None 
+    password: str | None = Field(default=None, min_length=6, max_length=128)
+
+class UserOut(User):
+    id: UUID
+    company_id: UUID
+```
+
+### Task Schema Patterns (`app/schemas/task.py`)
+```python
+class Task(BaseModel):
+    title: str = Field(min_length=1)
+    content: str = Field(min_length=1)
+    is_completed: bool = Field(default=False)
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+class TaskCreate(Task):
+    pass
+```
+
+### Company Schema Patterns (`app/schemas/company.py`)
+```python
+class Company(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    description: str | None = Field(default=None, max_length=1024)
+
+class CompanyCreate(Company):
+    pass
+```
+
+## Response Model Configuration
+
+### SQLAlchemy Integration
+```python
+class UserOut(User):
+    id: UUID
+    company_id: UUID
+
+    class Config:
+        from_attributes = True  # Enables SQLAlchemy model conversion
+```
+
+## Validation Standards
+
+### Input Validation
+- Always specify minimum/maximum lengths for string fields
+- Use Field validators for custom validation rules
+- Implement password strength requirements (min_length=6)
+
+### UUID Handling
+- Use `UUID` type from `uuid` module for primary keys
+- Include UUID fields in output schemas
+- Foreign key references should be UUID type
+
+### Optional vs Required Fields
+- Fields needed for creation: Define in Create schema
+- Fields for partial updates: Define with `None` default in Update schema
+- Read-only fields (timestamps, IDs): Define in output schemas
+
+## Schema Usage Patterns
+
+### Request Body Validation
+- Use Create schemas for POST endpoints
+- Use Update schemas for PUT/PATCH endpoints
+- Validate all input data through Pydantic models
+
+### Response Serialization
+- Use Output schemas for all response models
+- Configure `from_attributes=True` for SQLAlchemy model conversion
+- Include all relevant fields in response schemas
+
+## Import Standards
+```python
+from uuid import UUID
+from datetime import datetime
+from pydantic import BaseModel, Field
+```
+
+## Error Handling Integration
+- FastAPI automatically uses Pydantic validation errors for 422 responses
+- Custom validation errors should be consistent across schemas
+- Field validation errors include specific field names and constraints

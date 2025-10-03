@@ -1,0 +1,49 @@
+---
+alwaysApply: true
+---
+
+# FastAPI Todo App - Project Structure & Architecture Rules
+
+## Project Organization
+
+### Application Entry Point
+- Main application entry point: [app/main.py](mdc:app/main.py)
+- Application configuration: [app/core/config.py](mdc:app/core/config.py)
+- Database connection: [app/core/database.py](mdc:app/core/database.py)
+
+### Directory Structure Guidelines
+The project follows a layered architecture pattern:
+
+#### Core Layer (`app/core/`)
+- **Configuration**: Environment settings and database URLs in [app/core/config.py](mdc:app/core/config.py)
+- **Security**: Password hashing and JWT token creation in [app/core/security.py](mdc:app/core/security.py)
+- **Database**: Session management and connection handling in [app/core/database.py](mdc:app/core/database.py)
+- **URL Constants**: Centralized route definitions in [app/core/url.py](mdc:app/core/url.py)
+
+#### Models Layer (`app/models/`)
+- Database models inherit from [app/models/base.py](mdc:app/models/base.py)
+- Base class `IdTimestampMixin` provides `id`, `created_at`, `updated_at` fields
+- Models defined: [app/models/user.py](mdc:app/models/user.py), [app/models/company.py](mdc:app/models/company.py), [app/models/task.py](mdc:app/models/task.py)
+- All models exported through [app/models/__init__.py](mdc:app/models/__init__.py)
+
+#### Schemas Layer (`app/schemas/`)
+- Pydantic models for request/response validation
+- Separate files: [app/schemas/user.py](mdc:app/schemas/user.py), [app/schemas/company.py](mdc:app/schemas/company.py), [app/schemas/task.py](mdc:app/schemas/task.py)
+
+#### Services Layer (`app/services/`)
+- Business logic implementation
+- Authentication services in [app/services/auth.py](mdc:app/services/auth.py)
+- Task services in [app/services/task.py](mdc:app/services/task.py)
+
+#### Routers Layer (`app/routers/`)
+- API endpoints organized by domain
+- Router registration in [app/routers/__init__.py](mdc:app/routers/__init__.py)
+- Domain-specific routers: auth, users, companies, todos, health
+
+## Architecture Principles
+
+1. **Dependency Injection**: Use FastAPI's dependency system for database sessions and authentication
+2. **Separation of Concerns**: Keep business logic in services, not in routers
+3. **Layered Approach**: Clear separation between layers with defined responsibilities
+4. **Configuration Management**: Environment-based configuration with [app/core/config.py](mdc:app/core/config.py)
+5. **URL Centralization**: Route constants defined in [app/core/url.py](mdc:app/core/url.py)

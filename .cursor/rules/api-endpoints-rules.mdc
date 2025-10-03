@@ -1,0 +1,112 @@
+---
+alwaysApply: false
+description: Rules for API endpoint organization, route patterns, and RESTful design
+globs: app/routers/*.py
+---
+
+# FastAPI Todo App - API Endpoints & Router Organization Rules
+
+## Router Organization
+
+### Main Router Registration
+- Main router defined in [app/routers/__init__.py](mdc:app/routers/__init__.py)
+- Router order: auth → users → companies → todos → health
+- Each domain has its own router module for separation of concerns
+
+### Router Structure Pattern
+```python
+from fastapi import APIRouter
+from app.core.url import {domain}
+from app.core.database import get_db_context
+from app.services.auth import get_current_user
+
+router = APIRouter(prefix={domain}["prefix"], tags={domain}["tags"])
+```
+
+## URL Constants & Route Management
+
+### Centralized Route Configuration
+- Route definitions stored in [app/core/url.py](mdc:app/core/url.py)
+- Each domain has prefix, tags, and URL endpoints defined
+- Consistent naming patterns: domain["urls"]["action_name"]
+
+### Route Naming Conventions
+- `get_{resource}`: Retrieve single resource
+- `list_{resources}`: Retrieve multiple resources  
+- `create_{resource}`: Create new resource
+- `update_{resource}`: Modify existing resource
+- `delete_{resource}`: Remove resource
+
+## Authentication & Authorization Patterns
+
+### Current User Dependency
+- Use `current_user: User = Depends(get_current_user)` for protected endpoints
+- Database session: `db: Session = Depends(get_db_context)`
+- Access control helpers: `_ensure_access()` functions for cross-company permission checks
+
+### Permission Patterns
+- Company isolation: Users can only access resources within their company
+- Admin privileges: Admins can access all company resources
+- Owner access: Users can directly access their own resources
+
+## HTTP Status Codes & Error Handling
+
+### Standard Status Codes
+- `200`: Successful GET requests
+- `400`: Bad request (validation errors)
+- `401`: Unauthorized (authentication required)
+- `403`: Forbidden (access denied, wrong company/permissions)
+- `404`: Not found (resource doesn't exist)
+- `422`: Unprocessable entity (validation errors)
+
+### Error Response Patterns
+```python
+raise HTTPException(
+    status_code=status.HTTP_403_FORBIDDEN,
+    detail="Cross-company access denied"
+)
+```
+
+## Route Handler Patterns
+
+### Standard Route Structure
+1. Extract path parameters (UUIDs)
+2. Get database session
+3. Get current authenticated user
+4. Validate permissions/cross-company access
+5. Perform business operation
+6. Return response model
+
+### Response Model Configuration
+- Define response_model at route level (e.g., `response_model=UserOut`)
+- Use Pydantic schemas from `app.schemas` modules
+- Configure `from_attributes=True` in Pydantic config
+
+## Domain-Specific Patterns
+
+### Authentication Router (`app/routers/auth.py`)
+- POST `/auth/login`: OAuth2PasswordRequestForm authentication
+- Returns JWT access token with company_id and is_admin claims
+- Uses `create_access_token()` from [app/core/security.py](mdc:app/core/security.py)
+
+### User Router (`app/routers/users.py`)
+- Company-scoped operations exclusively
+- Admin/owner permission separation
+- Company isolation enforcement
+
+### Company Router (`app/routers/companies.py`)
+- User company relationship management
+- Company entity CRUD operations
+
+### Todo Router (`app/routers/todos.py`)
+- Task management with owner/company validation
+- Cross-company access prevention via `_ensure_access()`
+- Company isolation for task visibility
+
+## Import Standards
+- Always import dependencies in this order:
+  1. Standard library imports
+  2. Third-party imports  
+  3. Local application imports
+- Use specific imports from core modules
+- Import schemas from `app.schemas` modules

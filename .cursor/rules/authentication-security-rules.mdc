@@ -1,0 +1,127 @@
+---
+alwaysApply: false
+description: Rules for authentication, authorization, and security implementation patterns
+globs: app/services/auth.py,app/core/security.py,app/routers/auth.py
+---
+
+# FastAPI Todo App - Authentication & Security Rules
+
+## Authentication Architecture
+
+### JWT Token System
+- Token creation: [app/core/security.py](mdc:app/core/security.py) using `python-jose`
+- Authentication service: [app/services/auth.py](mdc:app/services/auth.py)
+- OAuth2 integration: `OAuth2PasswordBearer` for token extraction
+- Login endpoint: [app/routers/auth.py](mdc:app/routers/auth.py)
+
+### Token Configuration
+```python
+# From app/core/security.py
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
+```
+
+### Token Claims Structure
+- `sub`: User ID (subject)
+- `exp`: Expiration timestamp (UTC timezone)
+- `type`: "access" (token type identifier)
+- `company_id`: Company ID for authorization
+- `is_admin`: Admin privilege flag
+
+## Password Security
+
+### Hashing Implementation
+```python
+# From app/core/security.py
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def get_password_hash(password: str) -> str:
+    return pwd_context.hash(password)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+```
+
+## Authorization Patterns
+
+### Single Sign-On Flow (`get_current_user`)
+1. Extract Bearer token from Authorization header
+2. Decode JWT token and validate signature
+3. Extract user ID and company ID from claims
+4. Fetch user from database
+5. Validate user is active (`ensure_active`)
+6. Validate company access (`ensure_same_company`)
+7. Return authenticated user object
+
+### Cross-Company Protection
+```python
+# From app/services/auth.py
+def ensure_same_company(user: User, token_company_id: str):
+    if str(user.company_id) != token_company_id:
+        raise HTTPException(status_code=403, detail="Company access mismatch")
+```
+
+### Access Control Functions
+- `ensure_active(user)`: Check user is_active status
+- `ensure_same_company(user, company_id)`: Validate company membership
+- `get_current_user()`: Main authentication dependency
+
+## Route Protection Patterns
+
+### Protected Endpoint Dependency Injection
+```python
+from app.services.auth import get_current_user
+
+@router.get("/protected-route")
+def protected_route(current_user: User = Depends(get_current_user)):
+    return current_user
+```
+
+### Cross-Company Access Prevention
+```python
+def _ensure_access(resource, current_user: User):
+    if resource.company_id != current_user.company_id:
+        raise HTTPException(status_code=403, detail="Cross-company access denied")
+```
+
+## Security Headers & Configuration
+
+### CORS Configuration
+- Configure CORS in main FastAPI application if needed
+- Allow credentials for authentication flow
+- Restrict origins in production environments
+
+### Error Responses
+- Never expose internal error details in authentication failures
+- Standard 401 responses with "WWW-Authenticate: Bearer" header
+- Consistent 403 responses for authorization failures
+
+## Authentication Flow Requirements
+
+### Login Process
+1. Accept OAuth2PasswordRequestForm (username/password)
+2. Validate credentials against database
+3. Generate JWT access token with company/admin claims
+4. Return Bearer token response
+
+### Token Validation
+1. Extract token from Authorization header
+2. Decode and validate JWT signature
+3. Check token expiration
+4. Validate user existence and status
+5. Verify company membership
+
+## Environment Variables
+Ensure these security variables are set:
+- `JWT_SECRET_KEY`: Secret for JWT signing
+- `JWT_ALGORITHM`: Hashing algorithm (e.g., "HS256")
+- `ACCESS_TOKEN_EXPIRE_MINUTES`: Token validity duration
+- `DB_NAME`, `DB_HOST`, `DB_USER`, `DB_PASSWORD`: Database credentials
+
+## Security Best Practices
+- Use strong JWT secret keys
+- Implement proper password validation (min length, complexity)
+- Consider implementing refresh token mechanism for long sessions
+- Monitor for failed authentication attempts
+- Implement account lockout mechanisms

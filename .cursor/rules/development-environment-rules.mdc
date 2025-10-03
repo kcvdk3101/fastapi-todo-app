@@ -1,0 +1,124 @@
+---
+alwaysApply: false
+description: Rules for development environment configuration, requirements, and best practices
+globs: *.txt,*.py,requirements.txt,.env,alembic/*
+---
+
+# FastAPI Todo App - Development Environment Rules
+
+## Project Dependencies
+
+### Core Framework Stack
+From [requirements.txt](mdc:requirements.txt):
+- **FastAPI**: `0.117.1` - Modern async web framework
+- **Uvicorn**: `0.36.0` - ASGI server for FastAPI
+- **SQLAlchemy**: `2.0.43` - Modern ORM with async support
+- **Alembic**: `1.16.5` - Database migration tool
+- **Pydantic**: `2.11.9` - Data validation and settings
+
+### Database & Drivers
+- **psycopg2-binary**: `2.9.10` - PostgreSQL adapter
+- **SQLAlchemy**: Database ORM with async/await patterns
+
+### Authentication & Security
+- **python-jose**: `3.5.0` - JWT token handling
+- **passlib**: `1.7.4` - Password hashing utilities
+- **python-multipart**: `0.0.20` - Form data parsing
+
+### Development Tools
+- **pytest**: `8.4.2` - Testing framework
+- **coverage**: `7.10.7` - Code coverage analysis
+- **pytest-cov**: `7.0.0` - Coverage plugin for pytest
+- **python-dotenv**: `1.1.1` - Environment variable loading
+
+## Environment Configuration
+
+### Environment Variables (`.env`)
+```bash
+# Database Configuration
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=todoapp
+DB_USER=your_username
+DB_PASSWORD=your_password
+
+# JWT Configuration
+JWT_SECRET_KEY=your-secret-key-here
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+```
+
+### Database Setup Requirements
+- PostgreSQL database server
+- Alembic migrations for schema management
+- Environment-specific database URLs
+
+## Code Quality Standards
+
+### Type Hints & Modern Python
+- Use Python 3.8+ type hints throughout
+- Implement async/await patterns consistently
+- Use modern SQLAlchemy 2.0+ syntax with `DeclarativeBase`
+
+### Import Organization
+```python
+# 1. Standard library imports
+from uuid import UUID
+from datetime import datetime
+
+# 2. Third-party imports
+from fastapi import FastAPI, Depends, HTTPException
+from sqlalchemy.orm import Session
+from pydantic import BaseModel
+
+# 3. Local application imports
+from app.models.base import Base
+from app.services.auth import get_current_user
+```
+
+### Testing Framework Setup
+- Use pytest for unit and integration tests
+- Configure coverage reporting with pytest-cov
+- Test database setup with separate test database
+- Mock external dependencies in unit tests
+
+## Development Workflow
+
+### Database Migrations
+- Use Alembic for all schema changes
+- Create migrations: `alembic revision --autogenerate -m "description"`
+- Apply migrations: `alembic upgrade head`
+- Test migrations before deployment
+
+### Application Startup
+- Main entry point: [app/main.py](mdc:app/main.py)
+- Router configuration in [app/routers/__init__.py](mdc:app/routers/__init__.py)
+- Database connection established through [app/core/database.py](mdc:app/core/database.py)
+
+## File Organization Best Practices
+
+### Configuration Management
+- Centralize configuration in [app/core/config.py](mdc:app/core/config.py)
+- Use environment variables for sensitive settings
+- Separate development/staging/production configurations
+
+### Error Handling Patterns
+- Use FastAPI's HTTPException for consistent error responses
+- Implement proper logging configuration
+- Handle database connection errors gracefully
+
+## Deployment Considerations
+
+### Production Requirements
+- Set strong JWT secret keys
+- Use HTTPS in production
+- Configure proper CORS settings
+- Set up database connection pooling
+- Implement proper logging and monitoring
+
+### Security Checklist
+- Validate all input data through Pydantic schemas
+- Use parameterized queries (SQLAlchemy handles this)
+- Implement proper authentication on all protected endpoints
+- Never expose sensitive data in API responses
+- Use strong password hashing (bcrypt via passlib)
